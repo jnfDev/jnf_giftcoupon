@@ -152,10 +152,9 @@ class Jnf_Giftcoupon extends Module
 
     public function getCustomersCoupon()
     {
-        // id_giftcoupon	id_customer	giftcoupon_code	date_add
         $db  = Db::getInstance();
         $sql = "SELECT gc.`id_giftcoupon`, gc.`id_customer`, c.`firstname`, c.`lastname`, gc.`giftcoupon_code`, gc.`date_add` 
-            FROM `ps_giftcoupon` gc
+            FROM `$this->database` gc
             INNER JOIN `ps_customer` c ON gc.`id_customer` = c.`id_customer`;
         ";
 
@@ -165,7 +164,7 @@ class Jnf_Giftcoupon extends Module
     public function doesCustomerHaveCoupon($idCustomer)
     {
         $db  = Db::getInstance();
-        $sql = "SELECT `id_giftcoupon` FROM `ps_giftcoupon` WHERE `id_customer` = $idCustomer";
+        $sql = "SELECT `id_giftcoupon` FROM `$this->database` WHERE `id_customer` = " . (int) $idCustomer;
 
         return $db->executeS($sql) ? true : false;
     }
