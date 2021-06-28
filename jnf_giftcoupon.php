@@ -155,7 +155,7 @@ class Jnf_Giftcoupon extends Module
         $db  = Db::getInstance();
         $sql = "SELECT gc.`id_giftcoupon`, gc.`id_customer`, c.`firstname`, c.`lastname`, gc.`giftcoupon_code`, gc.`date_add` 
             FROM `$this->database` gc
-            INNER JOIN `". _DB_PREFIX_ ."_customer` c ON gc.`id_customer` = c.`id_customer`;
+            INNER JOIN `". _DB_PREFIX_ ."customer` c ON gc.`id_customer` = c.`id_customer`;
         ";
 
         return (array) $db->executeS($sql);
