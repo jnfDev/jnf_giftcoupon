@@ -346,9 +346,10 @@ class Jnf_Giftcoupon extends Module
             } else {
                 $output .= $this->displayError(implode('<br />', $errors));
             }
+
+            $output .= $this->displayConfirmation($this->trans('Settings updated', [], 'Modules.Jnfgiftcoupon.Jnfgiftcoupon'));
         }
 
-        $output .= $this->displayConfirmation($this->trans('Settings updated', [], 'Modules.Jnfgiftcoupon.Jnfgiftcoupon'));
 
         return $output . $this->displayForm();
     }
