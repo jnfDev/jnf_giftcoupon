@@ -1,1 +1,4 @@
 config.xml
+config_*.xml
+mails/*
+!mail/layouts
