@@ -52,6 +52,8 @@ class Jnf_Giftcoupon extends Module
         return parent::install() &&
             $this->createDatabase() &&
             $this->registerHook('actionOrderStatusPostUpdate') &&
+            $this->registerHook('displayOrderConfirmation1') &&
+            $this->registerHook('actionFrontControllerSetMedia') &&
             Configuration::updateValue('JNF_GIFTCOUPON_TRIGGER_ORDER_STATUS', 2) &&
             Configuration::updateValue('JNF_GIFTCOUPON_TRIGGER_AMOUNT', 50) &&
             $this->registerHook(ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK);
@@ -161,15 +163,72 @@ class Jnf_Giftcoupon extends Module
         return (array) $db->executeS($sql);
     }
 
-    public function doesCustomerHaveCoupon($idCustomer)
+    public function doesCustomerHaveCoupon($idCustomer )
     {
         $db  = Db::getInstance();
-        $sql = "SELECT `id_giftcoupon` FROM `$this->database` WHERE `id_customer` = " . (int) $idCustomer;
+        $sql = "SELECT `id_giftcoupon`, `giftcoupon_code`  FROM `$this->database` WHERE `id_customer` = " . (int) $idCustomer;
 
-        return $db->executeS($sql) ? true : false;
+        return $db->getRow($sql);
     }
 
     /** Hooks */
+
+    public function hookActionFrontControllerSetMedia($params)
+    {
+        if ('order-confirmation' === $this->context->controller->php_self) {
+            $this->context->controller->registerStylesheet(
+                'giftcoupon-style',
+                'modules/'.$this->name.'/views/css/giftcoupon.css',
+                [
+                'media' => 'all',
+                'priority' => 200,
+                ]
+            );
+
+            $this->context->controller->registerJavascript(
+                'scratch-card-lib',
+                'modules/'.$this->name.'/views/js/scratch-card.js',
+                [
+                'priority' => 200,
+                'attribute' => 'async',
+                ]
+            );
+        }
+    }
+
+    public function hookDisplayOrderConfirmation1($params)
+    {
+        $output = '';
+
+        $idOrder = (int) Tools::getValue('id_order');
+        $orderObj  = new Order($idOrder);
+
+        if (!isset($orderObj->id_customer) || !Customer::customerIdExistsStatic($orderObj->id_customer)) {
+            return;
+        }
+
+        $idCustomer = $orderObj->id_customer;
+        $giftCoupon = $this->doesCustomerHaveCoupon($idCustomer);
+
+        if (isset($giftCoupon['giftcoupon_code']) && !empty($giftCoupon['giftcoupon_code'])) {
+
+            $couponCode  = $giftCoupon['giftcoupon_code'];
+            $cartRule    = CartRule::getCartsRuleByCode($couponCode, $orderObj->id_lang);
+
+            if (isset($cartRule[0]['quantity']) && (int) $cartRule[0]['quantity'] > 0 ) {
+                $cartRule = $cartRule[0];
+
+                $this->context->smarty->assign([
+                    'coupon_code' => $cartRule['code'],
+                    'reduction_percent' => (float) $cartRule['reduction_percent'],
+                ]);
+        
+                $output .= $this->display(__FILE__, 'views/templates/front/scratch-coupon.tpl');
+            }
+        }
+
+        return $output;
+    }
 
     public function hookActionOrderStatusPostUpdate($params)
     {
@@ -233,7 +292,7 @@ class Jnf_Giftcoupon extends Module
 
                 // Does customer have a coupon?
                 // If yes, lets return.
-                if ($this->doesCustomerHaveCoupon($customer->id) === true) {
+                if (!empty($this->doesCustomerHaveCoupon($customer->id))) {
                     return;
                 }
  
